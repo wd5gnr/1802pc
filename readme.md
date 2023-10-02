@@ -15,6 +15,12 @@ A few notes:
 5) If you want to use XMODEM etc, start with the -p option and then connect to the pty with a serial terminal program.
 6) If you want to exit, you can kill the process from another window or enter the metamonitor and use the $ command (you will need to confirm)   
 
+Some of the documentation below is for other versions:
+* Original 1802Uno (Arduino): https://github.com/wd5gnr/1802UNO
+* Original 1802Black (Blackpill): https://github.com/wd5gnr/1802black/tree/blackpill
+* Current 1802Black (Raspberry Pi Pico): https://github.com/wd5gnr/1802black
+  
+
 Configuration
 ===
 You have 32K of RAM at 0000 and no interrupts.
@@ -24,20 +30,14 @@ To change the ROM you must reflash the Arduino
 The ROM installed is the STG ELF2K ROM which has Basic, Forth, an assembler, and a debugger along with other tools.
 
 To run it put C0 XX 00 at location 0 to jump to it (where XX is 80 for for IDIOT/4, 90 for ETOPS, and C0 for Hi lo). 
-On power up (but not reset) the first 3 bytes of RAM initialize to C0 80 00.
+On power up (but not reset) the first 3 bytes of RAM initialize to C0 80 00. By default, 1802/PC autostarts the monitor, but you can override this with -a.
 
 The file 1802rom.h only includes other files so it is reasonably easy to flip different ROM images around and change where they load. Note that 1802 code is not always relocatable, so be sure you put ROM code where it will run correctly.
 
-I/O pin definitions (in main.h): 
-* LEDPIN (Q LED)
-* AUTOSTARTPIN - Ground this pin to stop autoboot of the system ROM
-* ALTROMPIN - Ground this pin to select the alternate ROM currently not useful but could be
-* MONITORPIN - Ground this pin to enter the metamonitor (but doesn't work if you are stuck waiting for input, etc.). Note, set to -1 to use the BOOTSEL button but this will slow you down
-* DISKACT - Set to 25 to see disk activity on Q. Set to something else if you prefer.
 
 General Operation Overview
 ===
-The blackpill version, so far, does NOT support the Kim UNO hardware. You must operate via serial port. There are two modes selected by PB2. If PB2 is low, the serial terminal is just a terminal (no front panel mode; see below) and the ROM at 8000 executes. If it is high, you will be in front panel mode (see below). To boot the ROM in front panel mode and flip the terminal, enter: G| (just two characters). Note that with the included ROM, executing SHOW CPU will trigger a breakpoint to the meta monitor (see below).
+The linux version, must operate via the console or a pseudo serial port. Note that with the included ROM, executing SHOW CPU will trigger a breakpoint to the meta monitor (see below). For ELF/OS there is also the metamon command.
 
 Serial Terminal Front Panel
 ---
@@ -195,18 +195,11 @@ Note that when stepping "through" a BIOS call, you will see a bogus instruction 
 * 0xFF18 - Copy string from [RF] to [RD]
 * 0xFF1B - Copy bytes from [RF] to [RD] for count RC
 
-A few more have been added to suppor the STG ROM, see 1802bios.cpp
+A few more have been added to support the STG ROM, see 1802bios.cpp
 
 Building
 ===
-Platform IO was used originally but with the blackpill it is  a problem to make the USB serial work reliably with it. So the blackpill version uses the Arduino IDE with these settings:
-
-* Board: STM32 MCU Based Boards | Generic STM32F4 series
-* Board Part Number: Blackpill F401CC
-* C Runtime: Newlib Nano (default)
-* USB Support: CDC (generic SERIAL supersede USART)
-* USART Support: Enabled (generic SERIAL)
-* USB Speed: Low/Full Speed
+For the Linux version, just run Make. You will need g++ and a few other tools.
 
 
 Built In Monitor
@@ -341,6 +334,10 @@ Hard Breakpoint
 ---
 Code a 68 (an illegal 1802 instruction) to force a jump to the built-in
 monitor.
+
+
+Video Walkthrough for Elf/OS
+[![IMAGE ALT TEXT](http://img.youtube.com/vi/GcteK91obRs)](https://youtu.be/GcteK91obRs "1802/PC Walkthrough")
 
 
 Video Walkthrough
