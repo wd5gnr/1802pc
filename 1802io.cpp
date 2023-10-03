@@ -192,18 +192,25 @@ void (*outputmap[])(uint8_t) =
 #define KEY_WR_BUFH 2
 #define KEY_WR_BUFL 3
 #define KEY_WR_DISDISKLED 4
+#define KEY_WR_EXITOS 0x7F
 #define KEY_WR_BUF16 0x80
 #define KEY_WR_DELAY16 0x81
 #define KEY_WR_TRAP16 0x82
 #define KEY_WR_TVECTOR16 0x83
 
+#include <cstdlib>  // need exit
 
 void io_write_key(uint8_t key, uint16_t val)
 {
   unsigned p, idx;
   switch (key)
   {
-  case KEY_WR_IMAP:             // map input port
+  case KEY_WR_EXITOS:
+    fprintf(stderr, "Exit from 1802 %d\n", val);
+    exit(val);
+    break; // not really
+
+  case KEY_WR_IMAP:   // map input port
     p = val >> 5;     // 0-7 where 0 is port 1
     idx = val & 0x1F; // index
     inputmap[p] = inputfn[idx];

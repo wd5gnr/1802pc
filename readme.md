@@ -13,7 +13,7 @@ A few notes:
 3) Once you are in the monitor, use the boot command.
 4) The date/time is pulled from the host computer. You can't change it.
 5) If you want to use XMODEM etc, start with the -p option and then connect to the pty with a serial terminal program.
-6) If you want to exit, you can kill the process from another window or enter the metamonitor and use the $ command (you will need to confirm)   
+6) If you want to exit, you can kill the process from another window or enter the metamonitor and use the $ command (you will need to confirm). Or (New) use the osexit command (see /home/osexit for source code). 
 
 Some of the documentation below is for other versions:
 * Original 1802Uno (Arduino): https://github.com/wd5gnr/1802UNO
