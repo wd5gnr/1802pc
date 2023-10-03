@@ -182,23 +182,27 @@ int ideseek(uint8_t h, uint16_t c, uint8_t s)
   return 0; 
 }
 
-int read_ide(uint16_t buff, uint8_t h, uint16_t c, uint8_t s)
+int read_mide(uint8_t *buff, uint8_t h, uint16_t c, uint8_t s)
 {
   if (ideseek(h, c, s))
     return -1;
-  if (fread(ram+buff,1,sizeof(sector),fide)!=sizeof(sector))
+  if (fread(buff,1,sizeof(sector),fide)!=sizeof(sector))
     return -1;
   return 0;
 }
+int read_ide(uint16_t buff, uint8_t h, uint16_t c, uint8_t s)
+{
+  return read_mide(ram + buff, h, c, s);
+}
 
-int write_ide(uint16_t buff, uint8_t h, uint16_t c, uint8_t s)
+int write_mide(uint8_t *buff, uint8_t h, uint16_t c, uint8_t s)
 {
   int i;
   if (ideseek(h, c, s))
   {
     return -1;
   }
-  if (fwrite(ram+buff,1,sizeof(sector),fide)!= sizeof(sector))
+  if (fwrite(buff,1,sizeof(sector),fide)!= sizeof(sector))
   {
     return -1;
   }
@@ -206,7 +210,10 @@ int write_ide(uint16_t buff, uint8_t h, uint16_t c, uint8_t s)
   return 0;
 }
 
-
+int write_ide(uint16_t buff, uint8_t h, uint16_t c, uint8_t s)
+{
+  return write_mide(ram + buff, h, c, s);
+}
 
 int get_chs(uint8_t h, uint16_t &c,uint8_t &s)
 {

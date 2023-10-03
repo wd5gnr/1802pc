@@ -76,6 +76,9 @@ static uint16_t arg;  // one argument
 static int terminate; // termination character
 static int noread;
 
+// generic sector buffer
+uint8_t sbuf[512];
+
 int monactive = 0;
 #if 0
 int getch(void)
@@ -231,6 +234,8 @@ void diskmon(void)
     printf(F("Host disk menu (arguments in hex)\r\n"));
     printf(F("S - set max 'track' count: S [max#]\r\n"
                      "F - Format (not required on 1802PC)\r\n"
+                     "> - Write disk out in exchange format\r\n"
+                     "< - Read disk in from exchange format\r\n"
                      "X - eXit\r\n"));
     int n = readline(NULL);
     n = toupper(n);
@@ -245,6 +250,121 @@ void diskmon(void)
         printf("Format not required\r\n");
       break;
 
+      case '>':
+      {
+ 
+        unsigned i;
+        int rv;
+        uint16_t c = 0;
+        uint8_t s = 0; 
+        if (reset_ide())
+        {
+          printf("Can't reset disk\r\n");
+          break;
+        }
+        printf("!DISK1:%04X:",MAXCYL);
+        do {
+          rv = read_mide(sbuf, 0, c, s);
+          if (!rv)
+          {
+            for (i = 0; i < sizeof(sbuf); i++)
+            {
+              printf("%02X", sbuf[i]);
+              if (((i+1)%16)==0)
+                printf("\r\n");
+            }
+            s++;
+            if (!s)
+              c++;
+          }
+        } while (rv == 0);
+        printf("EOF\r\n");
+      }
+        break;
+
+      case '<':
+      {
+        uint16_t c = 0;
+        uint8_t s = 0;
+        unsigned i;
+        int rv;
+        char inbuf[3];
+        FILE *f;
+        // check for empty disk
+        // temp use sbuff for file name
+        sprintf((char *)sbuf, "%s/ide00A.dsk", drivepfx);
+        f = fopen((char *)sbuf, "r");
+        if (f)
+        {
+          fclose(f);
+          printf("Disk not empty (use -d or delete old files)\r\n");
+          break;
+        }
+        if (!diskcfm())
+          break;
+        // read header or error
+        while (getch()!='!')
+          ;
+        if (getch()!='D' || getch()!='I' || getch()!='S'
+        || getch()!='K')
+        {
+          printf("Invalid file format\r\n");
+          break;
+        }
+        if (getch()!='1' || getch()!=':')
+        {
+          printf("Bad file version\r\n");
+          break;
+        }
+        // set MAXCYL
+        sbuf[0] = getch();
+        sbuf[1] = getch();
+        sbuf[2] = getch();
+        sbuf[3] = getch();
+        sbuf[4] = '\0';
+        if (sscanf((char *)sbuf, "%04X", &rv)!=1)
+        {
+          printf("Misformed file\r\n");
+          break;
+        }
+        MAXCYL = rv;
+        getch();  // better be a colon but not checked
+        reset_ide();
+        i = 0;
+        while (1)
+        {
+        if (i==sizeof(sbuf))
+        {
+          i = 0;
+          rv = write_mide(sbuf, 0, c, s);
+          s++;
+          if (s==0)
+            c++;
+        }
+        // read bytes
+        inbuf[0] = getch();
+        // on CRLF issue Prompt ]
+        if (inbuf[0]=='\r' || inbuf[0]=='\n')
+          {
+            putchar(']');
+            continue;
+          }
+        inbuf[1] = getch();
+        if (inbuf[0]=='E' && inbuf[1]=='O')
+        {
+          // end of file
+          // we assume the sender did not send
+          // an odd number of bytes so...
+          printf("Complete\r\n");
+          break;
+        }
+        inbuf[2] = '\0';
+        sscanf(inbuf, "%X", &rv);
+        sbuf[i++] = rv;
+        }
+      }
+      break;
+
     case 'D':
     {
       printf("Not available on 1802PC\r\n");
@@ -255,6 +375,7 @@ void diskmon(void)
       int n;
       EEPROM.write(MAXCYLEE, EEPROMSIG);
       EEPROM.write(MAXCYLEE + 1, n = readhexbuf(NULL, 0x10));
+      MAXCYL = n;
       printf("Set max cylinder to %d (0x%x)\r\n", n, n);
       break;
     }

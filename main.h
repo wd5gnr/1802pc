@@ -46,6 +46,11 @@ extern int getch(void);
 #define EEPROMSIG 0xD1
 #define MAXCYLEE  0xFE
 extern int diskinit;
+extern uint8_t MAXCYL;
+
+int read_mide(uint8_t *buff, uint8_t h, uint16_t c, uint8_t s);
+int write_mide(uint8_t *buff, uint8_t h, uint16_t c, uint8_t s);
+int reset_ide(void); 
 
 // This is a strange function that runs in RAM
 // halts the other processor
