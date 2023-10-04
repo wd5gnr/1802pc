@@ -17,9 +17,37 @@ void printreg(uint8_t code)
 // Table for Branch opcodes (0x3x)
 char brtable[] = {'R', 'Q', 'Z', 'F', '1', '2', '3', '4'};
 
+void ophex(uint8_t opcode, unsigned a)
+{
+    int ct = 0, extra;
+    if ((opcode&0xF0==0x30)&&opcode!=38)
+        ct = 1;
+    if (opcode==0x7C||opcode==0x7D||opcode==0x7F)
+        ct = 1;
+    if (opcode>=0xC0&&opcode<=0xC3)
+        ct = 2;
+    if (opcode>=0xc9&&opcode<=0xCB)
+        ct = 2;
+    if (opcode>=0xF8 && opcode!=0xFE)
+        ct = 1;
+    print2hex(opcode, 0);
+    putchar(' ');
+    extra = ct;
+    while (extra--)
+    {
+        a++;
+        print2hex(memread(a));
+        if (extra) putchar(' ');
+    }
+    if (ct!=2)
+        putchar('\t');
+    putchar('\t');
+}
+
 unsigned opcode(uint8_t opcode, unsigned a)
 {
     unsigned skip = 0;
+    ophex(opcode, a);
     switch (opcode & 0xF0)
     {
     case 0:

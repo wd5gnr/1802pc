@@ -52,10 +52,6 @@ int read_mide(uint8_t *buff, uint8_t h, uint16_t c, uint8_t s);
 int write_mide(uint8_t *buff, uint8_t h, uint16_t c, uint8_t s);
 int reset_ide(void); 
 
-// This is a strange function that runs in RAM
-// halts the other processor
-// and reads the BOOT button
-bool get_bootsel_button(void);
 
 // Warning: these are subject to change capriciously
 #define LEDPIN 25

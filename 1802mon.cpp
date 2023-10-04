@@ -362,6 +362,7 @@ void diskmon(void)
         sscanf(inbuf, "%X", &rv);
         sbuf[i++] = rv;
         }
+        reset_ide();
       }
       break;
 

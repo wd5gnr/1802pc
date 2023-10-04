@@ -342,7 +342,7 @@ int bios(uint16_t fn)
       if (c)
         serputc(c);
     } while (c);
-    fflush(fide);
+    fflush(stdout);
     p = 5;
   }
   break;
