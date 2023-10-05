@@ -7,6 +7,26 @@ What's New
 ===
 This is the Linux version.
 
+Update. In addition to the 1802Black-compatible -d mode (the default, for now, at least), you can specify a single file disk drive with -D.
+Unzip single-disk.zip to get a full elfos4 install. I intend to make a script for creating an empty disk but you should be able to say:
+   dd if=/dev/zero of=mydisk.dsk bs=512 count=xxx 
+
+xxx is the number of sectors you want. If you want to play nice it should be a whole number of tracks/cylinders which is 512*256 (131072) but it probably doesn't matter. Of course, if you make your own, you have to do the elf/os install as detailed here (see ElfOs.md). Or, you can 
+stream the baseline disk dump.
+
+So quick start:
+unzip single-disk.zip
+# Start from command line:
+./1802pc -D single.dsk   
+# Start and create pty to connect from any serial port program:
+./1802pc -D single.dsk -p
+# For example, if it reports /dev/pts/5
+minicom -D /dev/pts/5
+
+Streaming a blank disk will work, but the file sizes need to match. For single.dsk, you can enter metamon, go to disk and use the read disk command.
+
+
+
 A few notes:
 1) Very early release
 2) If you unzip the elf0s4.zip file, you will have a disk drive that can boot ElfOS and has many interesting items. 1802pc expects the folder in the working directory, but you can point it with the -d option (e.g., -d ~/1802disks/disk1/). 

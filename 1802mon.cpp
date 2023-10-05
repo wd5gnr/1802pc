@@ -232,7 +232,7 @@ void diskmon(void)
   while (1)
   {
     printf(F("Host disk menu (arguments in hex)\r\n"));
-    printf(F("S - set max 'track' count: S [max#]\r\n"
+    printf(F("S - set max 'track' count for -d: S [max#]\r\n"
                      "F - Format (not required on 1802PC)\r\n"
                      "> - Write disk out in exchange format\r\n"
                      "< - Read disk in from exchange format\r\n"
@@ -292,13 +292,16 @@ void diskmon(void)
         FILE *f;
         // check for empty disk
         // temp use sbuff for file name
-        sprintf((char *)sbuf, "%s/ide00A.dsk", drivepfx);
-        f = fopen((char *)sbuf, "r");
-        if (f)
+        if (fslen==0)  // using -d option or default
         {
-          fclose(f);
-          printf("Disk not empty (use -d or delete old files)\r\n");
-          break;
+          sprintf((char *)sbuf, "%s/ide00A.dsk", drivepfx);
+          f = fopen((char *)sbuf, "r");
+          if (f)
+            {
+            fclose(f);
+            printf("Disk not empty (use -d or delete old files)\r\n");
+            break;
+            }
         }
         if (!diskcfm())
           break;
@@ -327,7 +330,12 @@ void diskmon(void)
           printf("Misformed file\r\n");
           break;
         }
-        MAXCYL = rv;
+        if (fslen==0)
+          {
+          MAXCYL = rv;
+          EEPROM.write(MAXCYLEE, EEPROMSIG);
+          EEPROM.write(MAXCYLEE + 1, rv);
+          }
         getch();  // better be a colon but not checked
         reset_ide();
         i = 0;

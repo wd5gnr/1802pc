@@ -128,11 +128,32 @@ int reset_ide()
   return 0;
 }
 
+int single_ideseek(uint8_t h, uint16_t c, uint8_t s)
+{
+  long newpos;
+  if (h != 0)
+  {
+    printf("Bad head\n");
+    return -1;
+  }
+  newpos = c * (256l * sizeof(sector)) + s * sizeof(sector);
+  if (newpos>=fslen)
+    return -1;
+  if (fseek(fide,newpos,SEEK_SET))
+    return -1;
+  return 0;
+}
 
 int ideseek(uint8_t h, uint16_t c, uint8_t s)
 {
   long newpos;
   int noseek = 0;
+  if (fslen!=0)
+  {
+    fide = fsfile;  // only really need to do this once, but...
+    return single_ideseek(h, c, s);
+  }
+
   if (h != 0)
   {
     printf("Bad head\n");

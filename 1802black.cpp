@@ -124,12 +124,23 @@ void setupUno()
 #include <fcntl.h>
 #include <unistd.h>
 
+FILE *fsfile = NULL;
+unsigned long fslen = 0;
+
+
 _EEPROM EEPROM;
+
+
+void fscloser()
+{
+  if (fsfile)
+    fclose(fsfile);
+}
 
 int main(int argc, char *argv[])
 {
   int c;
-  while ((c = getopt(argc,argv,"ar:ps:d:e:?"))!=-1)
+  while ((c = getopt(argc,argv,"ar:ps:d:e:D:?"))!=-1)
   {
     switch(c)
     {
@@ -147,6 +158,20 @@ int main(int argc, char *argv[])
         break;
       case 'e':
         eedata = strdup(optarg);
+        break;
+
+      case 'D':
+        fsfile = fopen(optarg,"r+");
+        if (!fsfile)
+        {
+          fprintf(stderr, "Can't open file system file %s\n", optarg);
+          perror("");
+          exit(2);
+        }
+        atexit(fscloser);
+        fseek(fsfile, 0l, SEEK_END);
+        fslen = ftell(fsfile);
+        fseek(fsfile, 0l, SEEK_SET);
         break;
 
       case 'p':
@@ -177,14 +202,14 @@ int main(int argc, char *argv[])
         dup2(mainfd, STDOUT_FILENO);
       }
           case '?':
-            printf("Usage: 1802pc [-a] [-p] [-e eefile] [-d disk_prefix] [-r rom#] [-s delay]\r\n"
+            printf("Usage: 1802pc [-a] [-p] [-e eefile] [-d disk_prefix] [-D file] [-r rom#] [-s delay]\r\n"
                    "    -a - Do not auto start\r\n"
                    "    -p - Use pty for console\r\n"
                    "    -e - Use eefile as EEPROM data\r\n"
-                   "    -d - Use directory for disk drive files\r\n"
+                   "    -d - Use directory for disk drive files (use -D or -d; default -d disk)\r\n"
+                   "    -D - Use file for disk drive (use -D or -d)\r\n"
                    "    -r - Use ROM # specified (default 0)\r\n"
-                   "    -s - Delay between instructions (unitless; default=0)\r\n"
-            );
+                   "    -s - Delay between instructions (unitless; default=0)\r\n");
             break;
       }
   }

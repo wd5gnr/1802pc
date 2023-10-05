@@ -3,6 +3,7 @@
 
 #define F(s) s
 #include <cstdint>
+#include <cstdio>
 #include "getch.h"
 
 
@@ -65,6 +66,9 @@ unsigned disasmline(unsigned mp, int nl=1);
 
 extern const char *eedata;
 extern const char *drivepfx;
+
+extern FILE *fsfile;
+extern unsigned long fslen;
 
 #endif
 
