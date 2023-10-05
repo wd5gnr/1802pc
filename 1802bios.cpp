@@ -236,7 +236,7 @@ int write_ide(uint16_t buff, uint8_t h, uint16_t c, uint8_t s)
   return write_mide(ram + buff, h, c, s);
 }
 
-int get_chs(uint8_t h, uint16_t &c,uint8_t &s)
+int get_chs(uint8_t &h, uint16_t &c,uint8_t &s)
 {
   c = (reg[8] << 8) | (reg[7] >> 8);
   h = (reg[8] >> 8)&1;
