@@ -6,7 +6,7 @@
 #include <cctype>
 #include <cstring>
 #include "pceeprom.h"
-
+#include "vt100.h"
 /*
 Commands:
 
@@ -75,6 +75,8 @@ static int cmd;       // command
 static uint16_t arg;  // one argument
 static int terminate; // termination character
 static int noread;
+
+int visualmode = 0;
 
 // generic sector buffer
 uint8_t sbuf[512];
@@ -414,13 +416,51 @@ void dispbp(int bpn)
 
 int nobreak;
 
+void reg_dump(void)
+{
+          int i;
+        for (i = 0; i <= 15; i += 4)
+        {
+          printf("R%X:", i);
+          print4hex(reg[i]);
+          printf(F("\tR%X:"),i+1);
+          print4hex(reg[i + 1]);
+          printf("\tR%X:", i + 2);
+          print4hex(reg[i + 2]);
+          printf(F("\tR%X:"),i+3);
+          print4hex(reg[i + 3]);
+          printf("\r\n");
+        }
+        printf(F("(10) X: %X\t(11) P:%X\r\n"),x,p);
+        printf(F("(12) D: %X\t(13) DF:%X\r\n"),d,df);
+        printf("(14) Q:%X\t(15) T:%X\r\n", q, t);
+}
+
+void visual_mon_status()
+{
+  uint16_t a;
+  VT100::cls();
+  reg_dump();
+  VT100::gotorc(20, 1);
+   a = reg[p];
+  a+=disasmline(a, 0)+1;
+  printf(F("\tD=%02X\r\n"), d);  
+  a += disasmline(a, 0)+1;
+  printf("\r\n");
+  a += disasmline(a, 0);
+}
+
 void mon_status(void)
 {
 //  print4hex(reg[p]);
 //  Serial.print(F(": "));
-  disasmline(reg[p],0);      
-//  print2hex(memread(reg[p]));
-  printf(F("\tD=%02X\r\n"),d);
+  if (visualmode)
+    visual_mon_status();
+  else 
+  {
+    disasmline(reg[p], 0);
+    printf(F("\tD=%02X <==\r\n"), d);
+  }
 
 }
 
@@ -490,9 +530,11 @@ int monitor(void)
   {
     printf(F("\r\n>"));
     cmd = readline(&terminate);
+    if (visualmode)
+      visual_mon_status();
     if (terminate == 0x1b)
       continue;
-    if (!strchr("$DRMGBIOXQCN&?.`", cmd))
+    if (!strchr("$DRMGBIOXQCN&Vv?.`", cmd))
     {
       putchar('?');
       continue;
@@ -504,6 +546,14 @@ int monitor(void)
       noarg = 1;
     switch (cmd)
     {
+    case 'v':
+    case 'V':
+      visualmode = ~visualmode;
+      if (!visualmode)
+        VT100::cls();
+      else
+        visual_mon_status();
+      break;
     case '.':
       for (char *cp = cmdbuf + 1; *cp; cp++)
         exec1802(*cp);
@@ -522,7 +572,7 @@ int monitor(void)
     case '?':
       printf(F("<R>egister, <M>emory, <G>o, <B>reakpoint, <N>ext, <I>nput, <O>utput, e<X>it\r\n"));
       printf(F("<Q>uit, <C>ontinue, .cccc (send characters to front panel; no space after .\r\n)"));
-      printf(F("<D>isassemble <$>exit to OS <&> time<`> Disk menu\r\n "));
+      printf(F("<D>isassemble <$>exit to OS <&> time<`> Disk menu <V>isual toggle (WIP)\r\n "));
       printf(F("Examples: R (show all)  RB (show RB)  RB=2F00 (se RB)\r\n"));
       printf(F("M 100 10 (show 16 bytes at 100)   M 100=<CR>AA 55 22; (set memory at 100)\r\n"));
       printf(F("B 0 @101 (Set breakpoint 0 at 101)  .44$$ (Send front panel commands)\r\n"));
@@ -610,22 +660,7 @@ int monitor(void)
     case 'R':
       if (noarg)
       {
-        int i;
-        for (i = 0; i <= 15; i += 4)
-        {
-          printf("R%X:", i);
-          print4hex(reg[i]);
-          printf(F("\tR%X:"),i+1);
-          print4hex(reg[i + 1]);
-          printf("\tR%X:", i + 2);
-          print4hex(reg[i + 2]);
-          printf(F("\tR%X:"),i+3);
-          print4hex(reg[i + 3]);
-          printf("\r\n");
-        }
-        printf(F("(10) X: %X\t(11) P:%X\r\n"),x,p);
-        printf(F("(12) D: %X\t(13) DF:%X\r\n"),d,df);
-        printf("(14) Q:%X\t(15) T:%X\r\n", q, t);
+        reg_dump();
       }
       else
       {

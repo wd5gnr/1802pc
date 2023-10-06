@@ -137,7 +137,7 @@ int single_ideseek(uint8_t h, uint16_t c, uint8_t s)
     return -1;
   }
   newpos = c * (256l * sizeof(sector)) + s * sizeof(sector);
-  if (newpos>=fslen)
+  if (newpos>=fslen-sizeof(sector))
     return -1;
   if (fseek(fide,newpos,SEEK_SET))
     return -1;
