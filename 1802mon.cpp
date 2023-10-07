@@ -145,7 +145,10 @@ uint8_t readline(int *terminate)
       return '\0';
     }
     if (c == 0x7f || c == 0xFF)
+      {
       c = 8;
+      putchar(8);
+      }
     if (c == 8 && cb != 0)
     {
       cb--;
@@ -522,12 +525,13 @@ void visual_mon_status()
 {
   uint16_t a;
   VT100::cls();
-  reg_dump();
-  do_line(1);
-  a = reg[p];
-  if (viscmd == '?')
-  {
-    do_help();
+  VT100::gotorc(1, 1);
+    reg_dump();
+    do_line(1);
+    a = reg[p];
+    if (viscmd == '?')
+    {
+      do_help();
   }
   if (viscmd == 'B')
   {
@@ -668,6 +672,8 @@ int monitor(void)
     case '$': // exit to OS
       if (diskcfm())
         exit(0);
+      if (visualmode)
+        visual_mon_status();
       break;
 
     case '&': // time commands -- not used here
