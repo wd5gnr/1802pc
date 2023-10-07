@@ -426,6 +426,7 @@ int nobreak;
 
 char viscmd = ' ';
 uint16_t visadd = 0;
+uint16_t visnext; 
 
 void reg_dump(void)
 {
@@ -539,7 +540,7 @@ void visual_mon_status()
   }
   if (viscmd == 'D')
   {
-    disasm1802(visadd, visadd + 9);
+    visnext=disasm1802(visadd, visadd + 9)-1;
   }
   if (viscmd == 'M')
   {
@@ -559,8 +560,6 @@ void visual_mon_status()
 
 void mon_status(void)
 {
-  //  print4hex(reg[p]);
-  //  Serial.print(F(": "));
   if (visualmode)
     visual_mon_status();
   else
@@ -639,7 +638,7 @@ int monitor(void)
     }
     if (terminate == 0x1b)
       continue;
-    if (!strchr("$DRMGBIOXQCN&Vvs?.`", cmd))
+    if (!strchr("$DRMGBIOXQCN&VS?.`", cmd))
     {
       putchar('?');
       continue;
@@ -651,13 +650,13 @@ int monitor(void)
       noarg = 1;
     switch (cmd)
     {
-    case 's': // refresh status
+    case 'S': // refresh status
       VT100::cls();
+      VT100::gotorc(1, 1);
       mon_status();
       break;
 
-    case 'v': // toggle visual mode
-    case 'V':
+    case 'V':  // visual mode toggle
       visualmode = !visualmode;
       if (!visualmode)
         VT100::cls();
@@ -704,6 +703,18 @@ int monitor(void)
       unsigned limit;
       if (noarg)
       {
+        if (visualmode && viscmd=='D')
+        {
+          visadd = visnext;
+          visual_mon_status();
+          break;
+        }
+        else if (visualmode)
+        {
+          viscmd = 'D'; // take last address
+          visual_mon_status();
+          break;
+        }
         printf(F("Usage: D address [length]]\r\n"));
         break;
       }
@@ -732,7 +743,7 @@ int monitor(void)
         mon_status();
       run();
       if (visualmode)
-        mon_status();
+        visual_mon_status();
       nobreak = 0;
       break;
 
@@ -782,6 +793,8 @@ int monitor(void)
           bp[arg].type = 3;
           break;
         }
+        if (visualmode)
+          visual_mon_status();
       }
       else
       {
@@ -987,8 +1000,13 @@ int monitor(void)
           limit = 0xFFFF; // wrapped around!
         if (visualmode)
         {
+          if (noarg)
+          {
+            if (viscmd=='M')
+              visadd += 0x80;
+          } else
+            visadd = arg;
           viscmd = 'M';
-          visadd = arg;
           visual_mon_status();
         }
         else

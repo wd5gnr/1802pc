@@ -20,7 +20,7 @@ char brtable[] = {'R', 'Q', 'Z', 'F', '1', '2', '3', '4'};
 void ophex(uint8_t opcode, unsigned a)
 {
     int ct = 0, extra;
-    if ((opcode&0xF0==0x30)&&opcode!=38)
+    if (((opcode&0xF0)==0x30)&&opcode!=38)
         ct = 1;
     if (opcode==0x7C||opcode==0x7D||opcode==0x7F)
         ct = 1;
@@ -335,13 +335,14 @@ unsigned disasmline(unsigned mp, int nl)
     return rv;
 }
 
-void disasm1802(unsigned start, unsigned stop)
+unsigned disasm1802(unsigned start, unsigned stop)
 {
     unsigned mp;
     for (mp = start; mp <= stop; mp++)
     {
         if (mp < start)
-            return; // strange wrap around
+            return 0; // strange wrap around
         mp+=disasmline(mp,1);
     }
+    return mp;
 }
