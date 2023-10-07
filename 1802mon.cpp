@@ -66,7 +66,7 @@ Q - Same as C
 
 */
 
-#include <cstdlib>  //  need exit
+#include <cstdlib> //  need exit
 
 static char cmdbuf[33];
 static int cb;
@@ -76,14 +76,18 @@ static uint16_t arg;  // one argument
 static int terminate; // termination character
 static int noread;
 
+#ifdef METAMON_VISUAL_NODEF
 int visualmode = 0;
+#else
+int visualmode = 1;
+#endif
 
 // generic sector buffer
 uint8_t sbuf[512];
 
 int monactive = 0;
 #if 0
-int getch(void)
+int getch()
 {
   int c;
   int ctr = 0;
@@ -92,7 +96,7 @@ int getch(void)
     c = Serialread();
     if (c == -1)
     {
- #if 0
+#if 0
       if (++ctr % DISPLAY_DIVISOR == 0)
       {
         updateLEDdata();
@@ -140,7 +144,7 @@ uint8_t readline(int *terminate)
         *terminate = 0x1b;
       return '\0';
     }
-    if (c==0x7f || c==0xFF)
+    if (c == 0x7f || c == 0xFF)
       c = 8;
     if (c == 8 && cb != 0)
     {
@@ -202,7 +206,7 @@ uint16_t readhexX(int (*getcfp)(void), int *term, uint16_t def = 0xFFFF)
 
 uint16_t readhex(int *term, uint16_t def = 0xFFFF)
 {
-  return readhexX(getch, term, def);
+  return readhexX(getche, term, def);
 }
 
 int getbufc(void)
@@ -229,16 +233,15 @@ void diskmon(void)
 {
   char diskcmd[128];
 
- 
   diskinit = 1;
   while (1)
   {
     printf(F("Host disk menu (arguments in hex)\r\n"));
     printf(F("S - set max 'track' count for -d: S [max#]\r\n"
-                     "F - Format (not required on 1802PC)\r\n"
-                     "> - Write disk out in exchange format\r\n"
-                     "< - Read disk in from exchange format\r\n"
-                     "X - eXit\r\n"));
+             "F - Format (not required on 1802PC)\r\n"
+             "> - Write disk out in exchange format\r\n"
+             "< - Read disk in from exchange format\r\n"
+             "X - eXit\r\n"));
     int n = readline(NULL);
     n = toupper(n);
     switch (n)
@@ -252,115 +255,115 @@ void diskmon(void)
         printf("Format not required\r\n");
       break;
 
-      case '>':
-      {
- 
-        unsigned i;
-        int rv;
-        uint16_t c = 0;
-        uint8_t s = 0; 
-        if (reset_ide())
-        {
-          printf("Can't reset disk\r\n");
-          break;
-        }
-        printf("!DISK1:%04X:",MAXCYL);
-        do {
-          rv = read_mide(sbuf, 0, c, s);
-          if (!rv)
-          {
-            for (i = 0; i < sizeof(sbuf); i++)
-            {
-              printf("%02X", sbuf[i]);
-              if (((i+1)%16)==0)
-                printf("\r\n");
-            }
-            s++;
-            if (!s)
-              c++;
-          }
-        } while (rv == 0);
-        printf("EOF\r\n");
-      }
-        break;
+    case '>':
+    {
 
-      case '<':
+      unsigned i;
+      int rv;
+      uint16_t c = 0;
+      uint8_t s = 0;
+      if (reset_ide())
       {
-        uint16_t c = 0;
-        uint8_t s = 0;
-        unsigned i;
-        int rv;
-        char inbuf[3];
-        FILE *f;
-        // check for empty disk
-        // temp use sbuff for file name
-        if (fslen==0)  // using -d option or default
+        printf("Can't reset disk\r\n");
+        break;
+      }
+      printf("!DISK1:%04X:", MAXCYL);
+      do
+      {
+        rv = read_mide(sbuf, 0, c, s);
+        if (!rv)
         {
-          sprintf((char *)sbuf, "%s/ide00A.dsk", drivepfx);
-          f = fopen((char *)sbuf, "r");
-          if (f)
-            {
-            fclose(f);
-            printf("Disk not empty (use -d or delete old files)\r\n");
-            break;
-            }
-        }
-        if (!diskcfm())
-          break;
-        // read header or error
-        while (getch()!='!')
-          ;
-        if (getch()!='D' || getch()!='I' || getch()!='S'
-        || getch()!='K')
-        {
-          printf("Invalid file format\r\n");
-          break;
-        }
-        if (getch()!='1' || getch()!=':')
-        {
-          printf("Bad file version\r\n");
-          break;
-        }
-        // set MAXCYL
-        sbuf[0] = getch();
-        sbuf[1] = getch();
-        sbuf[2] = getch();
-        sbuf[3] = getch();
-        sbuf[4] = '\0';
-        if (sscanf((char *)sbuf, "%04X", &rv)!=1)
-        {
-          printf("Misformed file\r\n");
-          break;
-        }
-        if (fslen==0)
+          for (i = 0; i < sizeof(sbuf); i++)
           {
-          MAXCYL = rv;
-          EEPROM.write(MAXCYLEE, EEPROMSIG);
-          EEPROM.write(MAXCYLEE + 1, rv);
+            printf("%02X", sbuf[i]);
+            if (((i + 1) % 16) == 0)
+              printf("\r\n");
           }
-        getch();  // better be a colon but not checked
-        reset_ide();
-        i = 0;
-        while (1)
+          s++;
+          if (!s)
+            c++;
+        }
+      } while (rv == 0);
+      printf("EOF\r\n");
+    }
+    break;
+
+    case '<':
+    {
+      uint16_t c = 0;
+      uint8_t s = 0;
+      unsigned i;
+      int rv;
+      char inbuf[3];
+      FILE *f;
+      // check for empty disk
+      // temp use sbuff for file name
+      if (fslen == 0) // using -d option or default
+      {
+        sprintf((char *)sbuf, "%s/ide00A.dsk", drivepfx);
+        f = fopen((char *)sbuf, "r");
+        if (f)
         {
-        if (i==sizeof(sbuf))
+          fclose(f);
+          printf("Disk not empty (use -d or delete old files)\r\n");
+          break;
+        }
+      }
+      if (!diskcfm())
+        break;
+      // read header or error
+      while (getch() != '!')
+        ;
+      if (getch() != 'D' || getch() != 'I' || getch() != 'S' || getch() != 'K')
+      {
+        printf("Invalid file format\r\n");
+        break;
+      }
+      if (getch() != '1' || getch() != ':')
+      {
+        printf("Bad file version\r\n");
+        break;
+      }
+      // set MAXCYL
+      sbuf[0] = getch();
+      sbuf[1] = getch();
+      sbuf[2] = getch();
+      sbuf[3] = getch();
+      sbuf[4] = '\0';
+      if (sscanf((char *)sbuf, "%04X", &rv) != 1)
+      {
+        printf("Misformed file\r\n");
+        break;
+      }
+      if (fslen == 0)
+      {
+        MAXCYL = rv;
+        EEPROM.write(MAXCYLEE, EEPROMSIG);
+        EEPROM.write(MAXCYLEE + 1, rv);
+      }
+      getch(); // better be a colon but not checked
+      reset_ide();
+      i = 0;
+      while (1)
+      {
+        if (i == sizeof(sbuf))
         {
           i = 0;
           rv = write_mide(sbuf, 0, c, s);
           s++;
-          if (s==0)
+          if (s == 0)
             c++;
         }
         // read bytes
         inbuf[0] = getch();
         // on CRLF issue Prompt ]
-        if (inbuf[0]=='\r' || inbuf[0]=='\n')
-          {
-            putchar(']');
-            continue;
-          }
+        if (inbuf[0] == '\r' || inbuf[0] == '\n')
+        {
+          putchar(']');
+          continue;
+        }
         inbuf[1] = getch();
-        if (inbuf[0]=='E' && inbuf[1]=='O')
+        if (inbuf[0] == 'E' && inbuf[1] == 'O')
         {
           // end of file
           // we assume the sender did not send
@@ -371,10 +374,10 @@ void diskmon(void)
         inbuf[2] = '\0';
         sscanf(inbuf, "%X", &rv);
         sbuf[i++] = rv;
-        }
-        reset_ide();
       }
-      break;
+      reset_ide();
+    }
+    break;
 
     case 'D':
     {
@@ -399,9 +402,11 @@ void diskmon(void)
 
 BP bp[16];
 
-void dispbp(int bpn)
+void dispbp(int bpn, int nl = 1)
 {
-  printf(F("\r\nBP %X: "),bpn);
+  if (nl)
+    printf("\r\n");
+  printf(F("BP %X: "), bpn);
   if (bp[bpn].type == 1)
     putchar('@');
   if (bp[bpn].type == 2)
@@ -416,24 +421,101 @@ void dispbp(int bpn)
 
 int nobreak;
 
+char viscmd = ' ';
+uint16_t visadd = 0;
+
 void reg_dump(void)
 {
-          int i;
-        for (i = 0; i <= 15; i += 4)
-        {
-          printf("R%X:", i);
-          print4hex(reg[i]);
-          printf(F("\tR%X:"),i+1);
-          print4hex(reg[i + 1]);
-          printf("\tR%X:", i + 2);
-          print4hex(reg[i + 2]);
-          printf(F("\tR%X:"),i+3);
-          print4hex(reg[i + 3]);
-          printf("\r\n");
-        }
-        printf(F("(10) X: %X\t(11) P:%X\r\n"),x,p);
-        printf(F("(12) D: %X\t(13) DF:%X\r\n"),d,df);
-        printf("(14) Q:%X\t(15) T:%X\r\n", q, t);
+  int i;
+  for (i = 0; i <= 15; i += 4)
+  {
+    printf("R%X:", i);
+    print4hex(reg[i]);
+    printf(F("\tR%X:"), i + 1);
+    print4hex(reg[i + 1]);
+    printf("\tR%X:", i + 2);
+    print4hex(reg[i + 2]);
+    printf(F("\tR%X:"), i + 3);
+    print4hex(reg[i + 3]);
+    printf("\r\n");
+  }
+  printf(F("(10) X: %X\t(11) P:%X\r\n"), x, p);
+  printf(F("(12) D: %X\t(13) DF:%X\r\n"), d, df);
+  printf("(14) Q:%X\t(15) T:%X\r\n", q, t);
+}
+
+// dump printable characters
+static void adump(unsigned a)
+{
+  int z;
+  printf(F("  "));
+  for (z = 0; z < 16; z++)
+  {
+    char b = memread(a + z);
+    if (b >= ' ')
+      putchar(b);
+    else
+      putchar('.');
+  }
+}
+
+void mem_dump(uint16_t arg, uint16_t limit)
+{
+  uint16_t i;
+  unsigned ct = 16;
+  printf(F("       0  1  2  3  4  5  6  7   8  9  A  B  C  D  E  F"));
+  for (i = arg; i <= limit; i++)
+  {
+    if (ct % 16 == 0)
+    {
+      if (ct != 16)
+        adump(i - 16);
+      printf("\r\n");
+      print4hex(i);
+      printf(": ");
+    }
+    else if (ct % 8 == 0)
+      putchar(' ');
+    ct++;
+
+    print2hex(memread(i));
+    putchar(' ');
+    if (i == 0xFFFF)
+      break; // hit limit
+    if (kbhit() && Serialread() == 0x1b)
+      break;
+  }
+  adump(i - 16);
+}
+
+void bp_dump()
+{
+  int i;
+  for (i = 0; i < sizeof(bp) / sizeof(bp[0]); i += 2)
+  {
+    dispbp(i, i != 0);
+    putchar('\t');
+    dispbp(i + 1, 0);
+  }
+  printf("\r\n");
+}
+
+void do_line(int nl = 0)
+{
+  for (int i = 0; i < 70; i++)
+    putchar('-');
+  if (nl)
+    printf("\r\n");
+}
+
+void do_help(void)
+{
+  printf(F("<R>egister, <M>emory, <G>o, <B>reakpoint, <N>ext, <I>nput, <O>utput, e<X>it\r\n"));
+  printf(F("<C>ontinue, .cccc (send characters to front panel; no space after .\r\n"));
+  printf(F("<D>isassemble <$>exit to OS <`> Disk menu <V>isual toggle <S>atus refresh\r\n"));
+  printf(F("Examples: R (show all)  RB (show RB)  RB=2F00 (se RB)\r\n"));
+  printf(F("M 100 10 (show 16 bytes at 100)   M 100=<CR>AA 55 22; (set memory at 100)\r\n"));
+  printf(F("B 0 @101 (Set breakpoint 0 at 101)  .44$$ (Send front panel commands)\r\n"));
 }
 
 void visual_mon_status()
@@ -441,27 +523,47 @@ void visual_mon_status()
   uint16_t a;
   VT100::cls();
   reg_dump();
-  VT100::gotorc(20, 1);
-   a = reg[p];
-  a+=disasmline(a, 0)+1;
-  printf(F("\tD=%02X\r\n"), d);  
-  a += disasmline(a, 0)+1;
-  printf("\r\n");
-  a += disasmline(a, 0);
+  do_line(1);
+  a = reg[p];
+  if (viscmd == '?')
+  {
+    do_help();
+  }
+  if (viscmd == 'B')
+  {
+    bp_dump();
+  }
+  if (viscmd == 'D')
+  {
+    disasm1802(visadd, visadd + 9);
+  }
+  if (viscmd == 'M')
+  {
+    uint16_t a = visadd & 0xFFF0;
+    mem_dump(a, a + 0x7F);
+  }
+  VT100::gotorc(18, 1);
+  do_line(1);
+  for (int j = 0; j < 3; j++)
+  {
+    a += disasmline(a, j != 0) + 1;
+    if (j == 0)
+      printf("\tD=%02X <===\r\n", d);
+  }
+  do_line(1);
 }
 
 void mon_status(void)
 {
-//  print4hex(reg[p]);
-//  Serial.print(F(": "));
+  //  print4hex(reg[p]);
+  //  Serial.print(F(": "));
   if (visualmode)
     visual_mon_status();
-  else 
+  else
   {
     disasmline(reg[p], 0);
     printf(F("\tD=%02X <==\r\n"), d);
   }
-
 }
 
 bool enterMonitor(void)
@@ -470,7 +572,7 @@ bool enterMonitor(void)
   if (monactive)
     return true;
 #if MONITORPIN >= 0
- // return digitalRead(MONITORPIN) == 0;
+  // return digitalRead(MONITORPIN) == 0;
   return 0;
 #else
   if (++throttle < 256)
@@ -507,34 +609,33 @@ int mon_checkbp(void)
   return 1;
 }
 
-// dump printable characters
-static void adump(unsigned a)
-{
-  int z;
-  printf(F("  "));
-  for (z = 0; z < 16; z++)
-  {
-    char b = memread(a + z);
-    if (b >= ' ')
-      putchar(b);
-    else
-      putchar('.');
-  }
-}
-
 int monitor(void)
 {
   int noarg;
+  if (monactive == 0 && visualmode)
+    visual_mon_status();
   monactive = 1;
   while (1)
   {
-    printf(F("\r\n>"));
+    if (visualmode)
+    {
+      VT100::gotorc(24, 1);
+      VT100::clreol();
+      printf(F("(? help; v toggle fullscreen)>"));
+    }
+    else
+      printf(F("\r\n(? help; v toggle fullscreen)>"));
     cmd = readline(&terminate);
     if (visualmode)
+    {
       visual_mon_status();
+      VT100::gotorc(23, 1);
+      VT100::clreos();
+      printf("Result: ");
+    }
     if (terminate == 0x1b)
       continue;
-    if (!strchr("$DRMGBIOXQCN&Vv?.`", cmd))
+    if (!strchr("$DRMGBIOXQCN&Vvs?.`", cmd))
     {
       putchar('?');
       continue;
@@ -546,43 +647,52 @@ int monitor(void)
       noarg = 1;
     switch (cmd)
     {
-    case 'v':
+    case 's': // refresh status
+      VT100::cls();
+      mon_status();
+      break;
+
+    case 'v': // toggle visual mode
     case 'V':
-      visualmode = ~visualmode;
+      visualmode = !visualmode;
       if (!visualmode)
         VT100::cls();
       else
         visual_mon_status();
       break;
-    case '.':
+    case '.': // front panel command
       for (char *cp = cmdbuf + 1; *cp; cp++)
         exec1802(*cp);
       break;
 
-    case '$':
-      if (diskcfm()) exit(0);
+    case '$': // exit to OS
+      if (diskcfm())
+        exit(0);
       break;
 
-    case '&':
+    case '&': // time commands -- not used here
     {
       int y, m, d, h, n, s;
       printf("This command not available on 1802PC\r\n");
     }
     break;
-    case '?':
-      printf(F("<R>egister, <M>emory, <G>o, <B>reakpoint, <N>ext, <I>nput, <O>utput, e<X>it\r\n"));
-      printf(F("<Q>uit, <C>ontinue, .cccc (send characters to front panel; no space after .\r\n)"));
-      printf(F("<D>isassemble <$>exit to OS <&> time<`> Disk menu <V>isual toggle (WIP)\r\n "));
-      printf(F("Examples: R (show all)  RB (show RB)  RB=2F00 (se RB)\r\n"));
-      printf(F("M 100 10 (show 16 bytes at 100)   M 100=<CR>AA 55 22; (set memory at 100)\r\n"));
-      printf(F("B 0 @101 (Set breakpoint 0 at 101)  .44$$ (Send front panel commands)\r\n"));
+    case '?': // help
+      if (visualmode)
+      {
+        viscmd = '?';
+        visual_mon_status();
+      }
+      else
+        do_help();
       break;
 
-    case '`':
+    case '`': // disk monitor
+      if (visualmode)
+        VT100::cls();
       diskmon();
       break;
 
-    case 'D':
+    case 'D': // disassemble (length ignored in visual mode)
     {
       unsigned arg2 = 0;
       unsigned limit;
@@ -599,20 +709,36 @@ int monitor(void)
       limit = (arg + arg2) - 1;
       if (limit < arg)
         limit = 0xFFFF; // wrapped around!
-      disasm1802(arg, limit);
+      if (visualmode)
+      {
+        viscmd = 'D';
+        visadd = arg;
+        visual_mon_status();
+      }
+      else
+        disasm1802(arg, limit);
     }
     break;
 
-    case 'N':
+    case 'N': // Execute next
       nobreak = 1;
-      mon_status();
+      if (!visualmode)
+        mon_status();
       run();
+      if (visualmode)
+        mon_status();
       nobreak = 0;
       break;
 
-    case 'B':
+    case 'B': // show or set breakpoints
       if (noarg || arg >= 0x10)
       {
+        if (visualmode)
+        {
+          viscmd = 'B';
+          visual_mon_status();
+          break;
+        }
         int i;
         for (i = 0; i < sizeof(bp) / sizeof(bp[0]); i++)
           dispbp(i);
@@ -657,21 +783,25 @@ int monitor(void)
       }
       break;
 
-    case 'R':
+    case 'R': // show or set regs
       if (noarg)
       {
-        reg_dump();
+        if (!visualmode)
+          reg_dump();
+        else
+          visual_mon_status();
       }
       else
       {
         if (terminate != '=')
           printf("R");
-         if (arg <= 0xF)
+        if (arg <= 0xF)
         {
           if (terminate == '=')
           {
             uint16_t v = readhexbuf(&terminate);
             reg[arg] = v;
+            visual_mon_status();
           }
           else
           {
@@ -703,7 +833,8 @@ int monitor(void)
             }
             else
             {
-              printf("P:%X", p);;
+              printf("P:%X", p);
+              ;
             }
 
             break;
@@ -758,33 +889,36 @@ int monitor(void)
 
             break;
           }
+          visual_mon_status();
         }
       }
 
       break;
 
-    case 'Q':
+    case 'Q': // quit not useful if you don't have a front panel so I removed it here
     {
-      runstate = 0;
-      monactive = 0;
-      return 0;
+//      runstate = 0;
+//      monactive = 0;
+//      return 0;
+      printf("Not an 1802pc command");
+      break;
     }
-    case 'C':
+    case 'C': // better to continue or exit
     case 'X':
       monactive = 0;
       return 1;
-    case 'I':
+    case 'I': // input from port
       print2hex(input(arg));
       break;
 
-    case 'O':
+    case 'O': // output to port
     {
       uint8_t v = readhexbuf(&terminate);
       output(arg, v);
       break;
     }
 
-    case 'G':
+    case 'G': // go
     {
       if (terminate != '\r')
         p = readhexbuf(&terminate);
@@ -794,7 +928,7 @@ int monitor(void)
       return 0;
     }
 
-    case 'M':
+    case 'M': // display memory
     {
       uint16_t arg2 = 0;
       if (terminate == '=')
@@ -832,45 +966,27 @@ int monitor(void)
         if (arg2 == 0)
           arg2 = 0x100;
 
-
         // normalize
-        i = arg & 0xF;  // how much off are we?
+        i = arg & 0xF; // how much off are we?
         arg &= 0xFFF0;
         arg2 += i;
         if (arg2 & 0xF)
         {
           arg2 &= 0xFFF0;
-          arg2 += 0x10;  // make sure we have a multiple of 16
+          arg2 += 0x10; // make sure we have a multiple of 16
         }
 
         limit = (arg + arg2) - 1;
         if (limit < arg)
           limit = 0xFFFF; // wrapped around!
-
-
-        printf(F("       0  1  2  3  4  5  6  7   8  9  A  B  C  D  E  F"));
-        for (i = arg; i <= limit; i++)
+        if (visualmode)
         {
-          if (ct % 16 == 0)
-          {
-            if (ct != 16)
-              adump(i - 16);
-            printf("\r\n");
-            print4hex(i);
-            printf(": ");
-          }
-          else if (ct % 8 == 0)
-            putchar(' ');
-          ct++;
-
-          print2hex(memread(i));
-          putchar(' ');
-          if (i == 0xFFFF)
-            break; // hit limit
-          if (kbhit() && Serialread() == 0x1b)
-            break;
+          viscmd = 'M';
+          visadd = arg;
+          visual_mon_status();
         }
-        adump(i - 16);
+        else
+          mem_dump(arg, limit);
       }
     }
     break;

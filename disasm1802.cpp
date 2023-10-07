@@ -30,6 +30,8 @@ void ophex(uint8_t opcode, unsigned a)
         ct = 2;
     if (opcode>=0xF8 && opcode!=0xFE)
         ct = 1;
+    if (opcode==0xD4)
+        ct = 2;  // fake CALL SEP
     print2hex(opcode, 0);
     putchar(' ');
     extra = ct;

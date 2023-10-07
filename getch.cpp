@@ -47,10 +47,16 @@ int getch()
     }
     else
     {
- //       if (c==0x7f)  // backspace
- //           c = 8;
         return c;
     }
+}
+
+int getche()
+{
+    int n = getch();
+    if (n>=0)
+        putchar(n);
+    return n;
 }
 
 #if 0
