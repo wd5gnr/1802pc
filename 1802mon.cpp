@@ -770,28 +770,28 @@ int monitor(void)
         if (cc == '-')
         {
           bp[arg].type = 0;
-          break;
+          ;
         }
         if (cc == '@')
         {
           cc = readhexbuf(&terminate);
           bp[arg].target = cc;
           bp[arg].type = 1;
-          break;
+          ;
         }
         if (cc == 'p' || cc == 'P')
         {
           cc = readhexbuf(&terminate);
           bp[arg].target = cc & 0xF;
           bp[arg].type = 2;
-          break;
+          ;
         }
         if (cc == 'i' || cc == 'I')
         {
           cc = readhexbuf(&terminate);
           bp[arg].target = cc & 0xFF;
           bp[arg].type = 3;
-          break;
+          ;
         }
         if (visualmode)
           visual_mon_status();
