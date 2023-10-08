@@ -425,6 +425,7 @@ void dispbp(int bpn, int nl = 1)
 int nobreak;
 
 char viscmd = ' ';
+char vishlp;
 uint16_t visadd = 0;
 uint16_t visnext;
 uint16_t watch[4];
@@ -522,15 +523,7 @@ void do_line(int nl = 0)
     printf("\r\n");
 }
 
-void do_help(void)
-{
-  printf(F("<R>egister, <M>emory, <G>o, <B>reakpoint, <N>ext, <I>nput, <O>utput, e<X>it\r\n"));
-  printf(F("<C>ontinue, .cccc (send characters to front panel; no space after .\r\n"));
-  printf(F("<D>isassemble <$>OS exit <`> Disk menu <V>isual toggle <W>atch<S>atus refresh\r\n"));
-  printf(F("Examples: R (show all)  RB (show RB)  RB=2F00 (se RB)\r\n"));
-  printf(F("M 100 10 (show 16 bytes at 100)   M 100=<CR>AA 55 22; (set memory at 100)\r\n"));
-  printf(F("B 0 @101 (Set breakpoint 0 at 101)  .44$$ (Send front panel commands)\r\n"));
-}
+#include "metahelp.inc"
 
 void visual_mon_status()
 {
@@ -541,7 +534,7 @@ void visual_mon_status()
   do_line(1);
   if (viscmd == '?')
   {
-    do_help();
+    do_help(vishlp);  // help uses visadd as subcommand
   }
   if (viscmd == 'B')
   {
@@ -659,7 +652,7 @@ int monitor(void)
       continue;
     }
     noarg = 0;
-    if (cmdbuf[cb])
+    if (cmdbuf[cb] && cmd!='?')
       arg = readhexbuf(&terminate);
     else
       noarg = 1;
@@ -726,13 +719,21 @@ int monitor(void)
     }
     break;
     case '?': // help
+    {
+      uint8_t cc;
+      cc = 0;
+      cc = getbufc();
+      if (cc == ' ')
+        cc = getbufc();
       if (visualmode)
       {
         viscmd = '?';
+        vishlp = cc; // help uses this as the command
         visual_mon_status();
       }
       else
-        do_help();
+        do_help(cc);
+    }
       break;
 
     case '`': // disk monitor
