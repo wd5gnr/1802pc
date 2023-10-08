@@ -145,10 +145,10 @@ uint8_t readline(int *terminate)
       return '\0';
     }
     if (c == 0x7f || c == 0xFF)
-      {
+    {
       c = 8;
       putchar(8);
-      }
+    }
     if (c == 8 && cb != 0)
     {
       cb--;
@@ -426,11 +426,13 @@ int nobreak;
 
 char viscmd = ' ';
 uint16_t visadd = 0;
-uint16_t visnext; 
+uint16_t visnext;
+uint16_t watch[4];
+uint16_t watchon[4] = {0, 0, 0, 0};
 
 void reg_dump(void)
 {
-  int i;
+  int i, j;
   for (i = 0; i <= 15; i += 4)
   {
     printf("R%X:", i);
@@ -441,6 +443,14 @@ void reg_dump(void)
     print4hex(reg[i + 2]);
     printf(F("\tR%X:"), i + 3);
     print4hex(reg[i + 3]);
+    if (watchon[i / 4])
+    {
+      printf("\t\tW@");
+      print4hex(watch[i / 4]);
+      putchar('=');
+      for (j = 0; j < 8; j++)
+        print2hex(memread(watch[i / 4] + j));
+    }
     printf("\r\n");
   }
   printf(F("(10) X: %X\t(11) P:%X\r\n"), x, p);
@@ -516,7 +526,7 @@ void do_help(void)
 {
   printf(F("<R>egister, <M>emory, <G>o, <B>reakpoint, <N>ext, <I>nput, <O>utput, e<X>it\r\n"));
   printf(F("<C>ontinue, .cccc (send characters to front panel; no space after .\r\n"));
-  printf(F("<D>isassemble <$>exit to OS <`> Disk menu <V>isual toggle <S>atus refresh\r\n"));
+  printf(F("<D>isassemble <$>OS exit <`> Disk menu <V>isual toggle <W>atch<S>atus refresh\r\n"));
   printf(F("Examples: R (show all)  RB (show RB)  RB=2F00 (se RB)\r\n"));
   printf(F("M 100 10 (show 16 bytes at 100)   M 100=<CR>AA 55 22; (set memory at 100)\r\n"));
   printf(F("B 0 @101 (Set breakpoint 0 at 101)  .44$$ (Send front panel commands)\r\n"));
@@ -527,12 +537,11 @@ void visual_mon_status()
   uint16_t a;
   VT100::cls();
   VT100::gotorc(1, 1);
-    reg_dump();
-    do_line(1);
-    a = reg[p];
-    if (viscmd == '?')
-    {
-      do_help();
+  reg_dump();
+  do_line(1);
+  if (viscmd == '?')
+  {
+    do_help();
   }
   if (viscmd == 'B')
   {
@@ -540,15 +549,21 @@ void visual_mon_status()
   }
   if (viscmd == 'D')
   {
-    visnext=disasm1802(visadd, visadd + 9)-1;
+    a = visadd;
+    for (int i = 0; i < 9; i++)
+    {
+      a = a + disasmline(a, 1) + 1;
+    }
+    visnext = a;
   }
   if (viscmd == 'M')
   {
-    uint16_t a = visadd & 0xFFF0;
+    a = visadd & 0xFFF0;
     mem_dump(a, a + 0x7F);
   }
   VT100::gotorc(18, 1);
   do_line(1);
+  a = reg[p];
   for (int j = 0; j < 3; j++)
   {
     a += disasmline(a, j != 0) + 1;
@@ -638,7 +653,7 @@ int monitor(void)
     }
     if (terminate == 0x1b)
       continue;
-    if (!strchr("$DRMGBIOXQCN&VS?.`", cmd))
+    if (!strchr("$DRMGBIOXQCN&VSW?.`", cmd))
     {
       putchar('?');
       continue;
@@ -656,7 +671,36 @@ int monitor(void)
       mon_status();
       break;
 
-    case 'V':  // visual mode toggle
+    case 'W':
+      if (noarg || arg >= 4)
+      {
+        printf("Usage: W 0|1|2|3 @addr | W 0|1|2|3 -");
+      }
+      else
+      {
+        if (terminate != '\r')
+        {
+          int cc;
+          cc = terminate;
+          if (cc == ' ')
+            cc = getbufc();
+          if (cc == '-')
+          {
+            watchon[arg] = 0;
+          }
+          if (cc == '@')
+          {
+            cc = readhexbuf(&terminate);
+            watch[arg] = cc;
+            watchon[arg] = 1;
+          }
+        }
+        if (visualmode)
+          visual_mon_status();
+      }
+      break;
+
+    case 'V': // visual mode toggle
       visualmode = !visualmode;
       if (!visualmode)
         VT100::cls();
@@ -703,7 +747,7 @@ int monitor(void)
       unsigned limit;
       if (noarg)
       {
-        if (visualmode && viscmd=='D')
+        if (visualmode && viscmd == 'D')
         {
           visadd = visnext;
           visual_mon_status();
@@ -916,9 +960,9 @@ int monitor(void)
 
     case 'Q': // quit not useful if you don't have a front panel so I removed it here
     {
-//      runstate = 0;
-//      monactive = 0;
-//      return 0;
+      //      runstate = 0;
+      //      monactive = 0;
+      //      return 0;
       printf("Not an 1802pc command");
       break;
     }
@@ -1002,9 +1046,10 @@ int monitor(void)
         {
           if (noarg)
           {
-            if (viscmd=='M')
+            if (viscmd == 'M')
               visadd += 0x80;
-          } else
+          }
+          else
             visadd = arg;
           viscmd = 'M';
           visual_mon_status();
