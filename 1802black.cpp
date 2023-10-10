@@ -210,6 +210,7 @@ int main(int argc, char *argv[])
                    "    -D - Use file for disk drive (use -D or -d)\r\n"
                    "    -r - Use ROM # specified (default 0)\r\n"
                    "    -s - Delay between instructions (unitless; default=0)\r\n");
+            exit(2);
             break;
       }
   }
