@@ -252,9 +252,9 @@ int run(void)
     case 0:
     case 1: // ths same since we don't manage IE
       work = memread(reg[x]);
+      reg[x]++;
       x = work >> 4;
       p = work & 0xF;
-      reg[x]++;
       break;
     case 2:
       d = memread(reg[x]);
